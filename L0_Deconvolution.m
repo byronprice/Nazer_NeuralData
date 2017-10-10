@@ -27,22 +27,31 @@ for ii=1:10
    numNeurons(ii) = size(calcium_train,2);
 end
 
+cd('~/Documents/Current-Projects/Nazer_NeuralData/');
 W = 5;
 kernel = ones(W,1)./W;
 correlations = zeros(length(train),1);
 
-lambda = 1;gamma = 0.98;
+numBins = 10000;
+tau = 0.5;
+lambda = 1.5;gama = 1-1/(tau*Fs);
 for ii=train
     calcium_train = allData{ii,1};
     spike_train = allData{ii,2};
+    
+    calcium_train = calcium_train(1:numBins,:);
+    spike_train = spike_train(1:numBins,:);
     
 %     stimLen = length(calcium_train);
 %     bin_edges = 0:5:stimLen;
    
    tempCorr = zeros(numNeurons(ii),1);
+   fprintf('%d\n',ii);
    for jj=1:numNeurons(ii)
-      % calculate est_s here 
-      [est_s] = L0_Algorithm(calcium_train(:,jj),lambda,gamma);
+      % calculate est_s here
+      tic;
+      [est_s] = L0_Algorithm(calcium_train(:,jj),lambda,gama);
+      toc;
       est_s = conv(est_s,kernel);
       
       true_s = spike_train(:,jj);
