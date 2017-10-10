@@ -32,6 +32,7 @@ for ii=3:N+1
 end
 changePoints = changePoints(changePoints~=0);
 est_s(changePoints) = 1;
+ind = find(est_s==1,1,'first');est_s(ind) = 0;
 
 end
 
