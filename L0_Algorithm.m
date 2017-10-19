@@ -22,7 +22,8 @@ for ii=3:N+1
     set = zeros(length(epsilon),1);
     count = 1;
     for jj=epsilon'
-        set(count) = F(jj)+CalcD(ca_trace(jj:ii-1),gama)+lambda;
+        [D_ab,C_ab] = CalcD1(ca_trace(jj:ii-1),gama);
+        set(count) = F(jj)+(D_ab(1)-C_ab*D_ab(2)+(C_ab^2/2)*D_ab(3))+lambda;
         count = count+1;
     end
     [F(ii),ind] = min(set);
@@ -36,7 +37,7 @@ ind = find(est_s==1,1,'first');est_s(ind) = 0;
 
 end
 
-function [D_ab] = CalcD(y,gama)
+function [D_ab,C_ab] = CalcD1(y,gama)
 % calculate D{y(a:b)} as in equation 8 from the paper
 N = length(y);
 
@@ -48,14 +49,12 @@ for ii=2:N
 end
 
 C_ab = C_ab_num/C_ab_denom;
-D_ab1 = 0;D_ab2 = 0;D_ab3 = 0;
+D_ab = zeros(3,1);
 for ii=1:N
-    D_ab1 = D_ab1+y(ii)^2/2;
-    D_ab2 = D_ab2+y(ii)*gama^(ii-1);
-    D_ab3 = D_ab3+gama^(2*(ii-1));
+    D_ab(1) = D_ab(1)+y(ii)^2/2;
+    D_ab(2) = D_ab(2)+y(ii)*gama^(ii-1);
+    D_ab(3) = D_ab(3)+gama^(2*(ii-1));
 end
-
-D_ab = D_ab1-C_ab*D_ab2+(C_ab^2/2)*D_ab3;
 
 end
 
