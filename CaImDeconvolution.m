@@ -7,7 +7,7 @@ frameRate = 30; % calcium imaging acquisition frame rate (Hz)
 delta = 1/frameRate;
 firingRate = 0.75;
 tau = 0.5; % 1 second decay constant
-time = 0:100;
+time = (0:100)';
 kernel = exp(-time./(tau*frameRate));
 
 numFrames = 5000;noiseVariance = 0.2;

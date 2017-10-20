@@ -30,28 +30,19 @@ end
 cd('~/Documents/Current-Projects/Nazer_NeuralData/');
 W = 5;
 kernel = ones(W,1)./W;
-correlations = zeros(length(train),1);
+allCorrs = [];
 
-numBins = 10000;
-tau = 0.5;
-lambda = 1.5;gama = 1-1/(tau*Fs);
-for ii=train
+for ii=1:10
     calcium_train = allData{ii,1};
     spike_train = allData{ii,2};
-    
-    calcium_train = calcium_train(1:numBins,:);
-    spike_train = spike_train(1:numBins,:);
-    
-%     stimLen = length(calcium_train);
-%     bin_edges = 0:5:stimLen;
    
    tempCorr = zeros(numNeurons(ii),1);
-   fprintf('%d\n',ii);
+   fprintf('Dataset %d\n',ii);
    for jj=1:numNeurons(ii)
+      fprintf('   Neuron- %d\n',jj);
       % calculate est_s here
-      tic;
-      [est_s] = L0_Algorithm(calcium_train(:,jj),lambda,gama);
-      toc;
+      [lambda,gama,est_s] = L0_CV(calcium_train(:,jj),Fs);
+
       est_s = conv(est_s,kernel);
       
       true_s = spike_train(:,jj);
@@ -59,11 +50,18 @@ for ii=train
       
       [r,~] = corrcoef(true_s,est_s);
       tempCorr(jj) = r(1,2);
+      allCorrs = [allCorrs;tempCorr(jj)];
+      fprintf('   Corr: %3.3f\n',r(1,2));
+      fprintf('   L: %3.2f G: %3.2f\n',lambda,gama);
    end
-   correlations(ii) = mean(tempCorr);
 end
 
-histogram(correlations)
-mean(correlations)
-std(correlations)
-max(correlations)
+cd ~/CloudStation/ByronExp/
+fileID = fopen('L0_Deconvolution-Results.txt','w');
+fprintf(fileID,'Mean Corr: %3.2f\n',mean(allCorrs));
+fprintf(fileID,'STD Corr: %3.2e\n',std(allCorrs));
+fprintf(fileID,'Max Corr: %3.2f\n',max(allCorrs));
+fprintf(fileID,'Min Corr: %3.2f\n\n',min(allCorrs));
+fprintf(fileID,'%3.2f\n',allCorrs);
+
+fclose(fileID);
