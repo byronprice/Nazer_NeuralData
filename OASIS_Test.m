@@ -25,10 +25,10 @@ end
 
 cd('~/Documents/Current-Projects/Nazer_NeuralData/');
 
-W = 5;
+W = 4;
 kernel = ones(W,1)./W;
-correlations = zeros(length(train),1);
-for ii=train
+correlations = zeros(10,1);
+for ii=1:10
     calcium_train = allData{ii,1};
     spike_train = allData{ii,2};
     
@@ -37,14 +37,17 @@ for ii=train
    
    tempCorr = zeros(numNeurons(ii),1);
    for jj=1:numNeurons(ii)
-      [~,est_s,~] = deconvolveCa(calcium_train(:,jj),'ar1','constrained');
+%       temptrain = decimate(calcium_train(:,jj),4);
+      temptrain = calcium_train(:,jj);
+      [~,est_s,~] = deconvolveCa(temptrain,'ar1','constrained');
       est_s = conv(est_s,kernel);
       
-      true_s = spike_train(:,jj);
-      true_s = conv(true_s,kernel);
+%       true_s = decimate(spike_train(:,jj),4);
+      true_s = conv(spike_train(:,jj),kernel);
       
       [r,~] = corrcoef(true_s,est_s);
       tempCorr(jj) = r(1,2);
+      r(1,2)
    end
    correlations(ii) = mean(tempCorr);
 end

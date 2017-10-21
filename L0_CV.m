@@ -73,25 +73,14 @@ for fold=1:2
         [estTrace] = GetEstTrace(trainTrace,est_s,best_gama);
         
        % estTrace = reshape([estTrace';zeros(size(estTrace'))],[],1);
-       
        if fold == 1
-           yy = zeros(length(testTrace),1);
-           inds = [1,2];
-           for ii=1:length(testTrace)-1
-               yy(ii) = mean(estTrace(inds));
-               inds = inds+1;
-           end
-           yy(end) = estTrace(end);
+           yy = (estTrace(1:end-1)+estTrace(2:end))/2;
+           yy = [yy;estTrace(end)];
            
 %            y = interp(estTrace,2);y = y(2:2:end);
        elseif fold == 2
-           yy = zeros(length(testTrace),1);
-           yy(1) = estTrace(1);
-           inds = [1,2];
-           for ii=2:length(testTrace)
-              yy(ii) = mean(estTrace(inds));
-              inds = inds+1;
-           end
+           yy = (estTrace(1:end-1)+estTrace(2:end))/2;
+           yy = [estTrace(1);yy];
            
 %            y = interp(estTrace,2);y = y(2:2:end);
 %            y = [estTrace(1);y];
@@ -106,7 +95,7 @@ for fold=1:2
         %  time, as increasing lambda values will tend to increase the time
         %  it takes to run, thus on the next iteration of the for loop, it
         %  will take even longer
-        if test_time/(N/2) > 5e-3
+        if test_time/(N/2) > 2e-3
             break;
         end
     end
