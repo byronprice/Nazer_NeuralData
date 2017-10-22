@@ -28,7 +28,7 @@ for ii=1:10
 end
 
 cd('~/Documents/Current-Projects/Nazer_NeuralData/');
-W = 5;
+W = 4;
 kernel = ones(W,1)./W;
 allCorrs = [];
 
@@ -41,12 +41,15 @@ for ii=1:10
    for jj=1:numNeurons(ii)
       fprintf('   Neuron- %d\n',jj);
       % calculate est_s here
-      [lambda,gama,est_s] = L0_CV(calcium_train(:,jj),Fs);
+%       temptrain = downsample(calcium_train(:,jj),4);
+      temptrain = calcium_train(:,jj);
+      [lambda,gama,est_s] = L0_CV(temptrain,Fs);
 
       est_s = conv(est_s,kernel);
       
-      true_s = spike_train(:,jj);
-      true_s = conv(true_s,kernel);
+%       true_s = decimate(spike_train(:,jj),4);
+%       true_s(true_s<0.1) = 0;
+      true_s = conv(spike_train(:,jj),kernel);
       
       [r,~] = corrcoef(true_s,est_s);
       tempCorr(jj) = r(1,2);
