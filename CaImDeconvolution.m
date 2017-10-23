@@ -7,7 +7,8 @@ frameRate = 30; % calcium imaging acquisition frame rate (Hz)
 delta = 1/frameRate;
 firingRate = 0.75;
 tau = 0.5; % 1 second decay constant
-time = (0:100)';
+maxTime = floor(-log(0.005)*tau*frameRate);
+time = (0:maxTime)';
 kernel = exp(-time./(tau*frameRate));
 
 numFrames = 5000;noiseVariance = 0.2;
@@ -27,12 +28,11 @@ F = (F-temp(1))./(temp(2)-temp(1));
 % non-negative deconvolution ...
 
 % model parameter initializations
-baseline = median(F);
-sigmasquare = (1.4826*mad(F,1))^2;
+sigmasquare = (1.4826*mad(F,1))^2; % residual variance of calcium fluorescence model
 precision = 1/(sigmasquare);
-tau = 1; % 1 second approximate decay time for calcium
+tau = 0.5; % 1 second approximate decay time for calcium
+%  tau has approximately an inverse gamma prior A = 2 B = 0.5
 delta = 1/frameRate;
-alpha = 1;
 lambda = 1; % 1 Hz approximate firing rate, such that the poisson rate
         % in each bin is lambda*delta
        
@@ -45,14 +45,12 @@ lambda = 1; % 1 Hz approximate firing rate, such that the poisson rate
 %   would expect?? ... conjugate prior to the poisson rate lambda is
 %   the gamma distribution
 
-gammaPrior_lambda = [1.4,5]; % check this distribution, fairly reasonable
+gammaInvPrior_lambda = [1,2]; % check this distribution, fairly reasonable
                    % for expected firing rate of a neuron
-normalPrior_baseline = [baseline,100];
-gammaPrior_tau = [4,0.25];
+gammaInvPrior_tau = [2,0.5];
 gammaPrior_precision = [1e-3,1e3];
-gammaPrior_alpha = [2,10];
 Nparams = numFrames;
-numParams = Nparams+5;
+numParams = Nparams+3;
 
 numIter = 3e5;
 burnIn = 2e5;
@@ -62,70 +60,41 @@ skipRate = 200;
 params = zeros(numParams,(numIter-burnIn)/skipRate);
 posterior = zeros((numIter-burnIn)/skipRate,1);
 
-params(1:Nparams,1) = poissrnd(lambda*delta,[Nparams,1]);
+%params(1:Nparams,1) = poissrnd(lambda*delta,[Nparams,1]);
 params(Nparams+1,1) = lambda; 
-params(Nparams+2,1) = baseline;
-params(Nparams+3,1) = tau; 
-params(Nparams+4,1) = precision; 
-params(Nparams+5,1) = alpha;
+params(Nparams+2,1) = tau; 
+params(Nparams+3,1) = precision; 
 
 proposalSigma = zeros(numParams,1);
-nSigma = sqrt(var(poissrnd(lambda*delta,[1500,1])));
-for ii=1:Nparams
-   proposalSigma(ii) = nSigma/2; 
-end
+proposalSigma(1:Nparams) = 0.1;
 
-proposalSigma(Nparams+1) = sqrt(var(gamrnd(gammaPrior_lambda(1),...
-    gammaPrior_lambda(2),[1500,1])));
-proposalSigma(Nparams+2) = 1;
-proposalSigma(Nparams+3) = sqrt(var(gamrnd(gammaPrior_tau(1),...
-    gammaPrior_tau(2),[1500,1])));
-proposalSigma(Nparams+4) = 1;
-proposalSigma(Nparams+5) = 1;
+proposalSigma(Nparams+1) = 2;
+proposalSigma(Nparams+2) = 0.5;
+proposalSigma(Nparams+3) = 1e2;
+
+constantOnes = ones(numFrames,1);
 
 % make a surrogate beta-distributed random variable for each of the n-t
 %  values, then use those to flip a coin on each iteration of MCMC, which
 %  becomes the spike train, then use the spike train generated to calculate
 %  the prior and the likelihood
 
-nt = params(1:Nparams,1);
+gama = 1-1/(tau*frameRate);
+lambda_original = 3;
+nt = L0_Algorithm(F,lambda_original,gama);
+params(1:Nparams,1) = nt;
 
 % nt = spikeTrain;
-
-kernel = exp(-time./(params(Nparams+3,1)*frameRate));
+maxTime = floor(-log(0.005)*params(Nparams+2,1)*frameRate);
+time = (0:maxTime)';
+kernel = exp(-time./(params(Nparams+2,1)*frameRate));
 
 C = conv(nt,kernel);C = C(1:numFrames);
 
-% b = glmfit(C,F,'normal');
-% params(Nparams+5,1) = b(2);params(Nparams+2,1) = b(1);
+b = [constantOnes,C]\F;
+muEst = b(1)*constantOnes+b(2).*C;
+loglikelihood = sum(log(params(Nparams+3,1))-0.5*params(Nparams+3,1)*(muEst-F).^2);
 
-mu = F-params(Nparams+5,1).*C-params(Nparams+2,1);
-loglikelihood = sum(log(normpdf(mu,0,sqrt(1/params(Nparams+4,1)))));
-
-for ii=1:2e4
-    tempAlpha = gamrnd(gammaPrior_alpha(1),gammaPrior_alpha(2));
-    tempBaseline = normrnd(normalPrior_baseline(1),2);
-    tempTau = gamrnd(gammaPrior_tau(1),gammaPrior_tau(2));
-    tempLambda = gamrnd(gammaPrior_lambda(1),gammaPrior_lambda(2));
-    tempSigma = 1/gamrnd(gammaPrior_precision(1),gammaPrior_precision(2));
-    tempNt = poissrnd(tempLambda*delta,[Nparams,1]);
-    
-    kernel = exp(-time./(tempTau*frameRate));
-    C = conv(tempNt,kernel);C = C(1:numFrames);
-    
-    mu = F-tempAlpha.*C-tempBaseline;
-    tempLikely = sum(log(normpdf(mu,0,sqrt(tempSigma))));
-    
-    if tempLikely >= loglikelihood
-        params(1:Nparams,1) = tempNt;
-        params(Nparams+1,1) = tempLambda; 
-        params(Nparams+2,1) = tempBaseline;
-        params(Nparams+3,1) = tempTau; 
-        params(Nparams+4,1) = 1/tempSigma; 
-        params(Nparams+5,1) = tempAlpha;
-        loglikelihood = tempLikely;
-    end
-end
 
 logprior = sum(log(poisspdf(params(1:Nparams,1),delta*params(Nparams+1,1))))+...
     log(normpdf(params(Nparams+2,1),normalPrior_baseline(1),...
