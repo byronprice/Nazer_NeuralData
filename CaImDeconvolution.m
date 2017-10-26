@@ -45,6 +45,8 @@ lambda = 1; % 1 Hz approximate firing rate, such that the poisson rate
 %   would expect?? ... conjugate prior to the poisson rate lambda is
 %   the gamma distribution
 
+
+
 gammaInvPrior_lambda = [1,2]; % check this distribution, fairly reasonable
                    % for expected firing rate of a neuron
 gammaInvPrior_tau = [2,0.5];
@@ -97,13 +99,7 @@ loglikelihood = sum(log(params(Nparams+3,1))-0.5*params(Nparams+3,1)*(muEst-F).^
 
 
 logprior = sum(log(poisspdf(params(1:Nparams,1),delta*params(Nparams+1,1))))+...
-    log(normpdf(params(Nparams+2,1),normalPrior_baseline(1),...
-    normalPrior_baseline(2)))+log(gampdf(params(Nparams+3,1),...
-    gammaPrior_tau(1),gammaPrior_tau(2)))+...
-    log(gampdf(params(Nparams+4,1),gammaPrior_precision(1),...
-    gammaPrior_precision(2)))+log(gampdf(params(Nparams+5,1),...
-    gammaPrior_alpha(1),gammaPrior_alpha(2)))+...
-    log(gampdf(params(Nparams+1,1),gammaPrior_lambda(1),gammaPrior_lambda(2)));
+    log(
 
 posterior(1) = loglikelihood+logprior;
 
