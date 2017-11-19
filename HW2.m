@@ -63,7 +63,7 @@ connectMat(connectMat<0) = 0;
 % guarantee we have undirected connectivity
 undirConnectMat = connectMat;
 for ii=1:numNeurons
-    for jj=ii+1:numNeurons
+    for jj=1:numNeurons
         if undirConnectMat(ii,jj) == 1
             undirConnectMat(jj,ii) = 1;
         end
@@ -112,7 +112,7 @@ for ii=1:numTests
     % convert to undirected connectivity
     undirPmat = newPmat;
     for jj=1:numNeurons
-        for kk=jj+1:numNeurons
+        for kk=1:numNeurons
              if undirPmat(jj,kk)==1
                  undirPmat(kk,jj) = 1;
              end
