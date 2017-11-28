@@ -30,7 +30,7 @@ if nargin<3
     tau_guess = 0.25;
 end
 
-possible_lambda = [1];
+possible_lambda = [0.5];
 
 gama_guess = (1-1/(tau_guess*Fs))^2;
 

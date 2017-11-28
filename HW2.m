@@ -9,14 +9,14 @@ end
 
 parpool(myCluster,4);
 
-load('small_net1.mat');
+load('small_net1-Poisson.mat');
 
-reduceData = F;
+reduceData = spikeTrains;
 [N,numNeurons] = size(reduceData);
 
 connectivityMatrix1 = zeros(numNeurons,numNeurons);
 connectivityMatrix2 = zeros(numNeurons,numNeurons);
-histParams = 10;
+histParams = 25;
 allInds = 1:numNeurons;
 parfor ii=1:numNeurons
     Y = reduceData(histParams+1:end,ii);
@@ -27,8 +27,7 @@ parfor ii=1:numNeurons
 
     inds = find(allInds~=ii);
     Design = [ones(length(Y),1),H,reduceData(histParams+1:end,inds),reduceData(histParams:end-1,inds)];
-    b = Design\Y;
-    fullDev = sum((Design*b-Y).^2);
+    [~,fullDev,~] = glmfit(Design,Y,'poisson','constant','off');
 
     
     tempConn1 = zeros(1,numNeurons);
@@ -38,7 +37,7 @@ parfor ii=1:numNeurons
         
         newInds = find(allInds~=ii & allInds~=jj);
         Design = [ones(length(Y),1),H,reduceData(histParams+1:end,newInds),reduceData(histParams:end-1,inds)];
-        b = Design\Y;dev = sum((Design*b-Y).^2);
+        [~,dev,~] = glmfit(Design,Y,'poisson','constant','off');
         tempConn2(jj) = dev;
     end
     connectivityMatrix1(ii,:) = tempConn1;
@@ -114,7 +113,7 @@ for ii=1:numTests
     pThreshold = vectorPvals(index);
     
     if isempty(pThreshold) == 1
-        pThreshold = min(vectorPvals);
+        pThreshold = min(vectorPvals)/2;
     end
     
     % threshold to get directed connectivity
