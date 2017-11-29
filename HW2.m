@@ -7,7 +7,7 @@ if getenv('ENVIRONMENT')
    myCluster.JobStorageLocation = getenv('TMPDIR'); 
 end
 
-parpool(myCluster,4);
+parpool(myCluster,6);
 
 load('small_net1-Poisson.mat');
 
@@ -45,11 +45,12 @@ parfor ii=1:numNeurons
     fprintf('Done with neuron %d\n',ii);
 end
 
-save('SmallNet1_Results.mat','connectivityMatrix1','connectivityMatrix2','numNeurons','N');
+save('SmallNet1_PoissonResults.mat','connectivityMatrix1','connectivityMatrix2',...
+    'numNeurons','N','histParams');
 
 delete(gcp);
 
-load('SmallNet1_Results.mat');
+load('SmallNet1_PoissonResults.mat');
 load('network_small-net1.mat');
 
 connectMat = zeros(numNeurons,numNeurons);
@@ -86,8 +87,8 @@ for ii=1:numNeurons
     for jj=inds
         devFull = connectivityMatrix1(ii,jj);
         devRestrict = connectivityMatrix2(ii,jj);
-        F = ((devRestrict-devFull)/paramDiff)/(devFull/(N-fullParams-1));
-        temp = fcdf(F,paramDiff,N-fullParams,'upper');
+        chiSquare = devRestrict-devFull;
+        temp = chi2cdf(chiSquare,paramDiff,'upper');
         if temp<1e-50
             temp = 1e-50;
         end
