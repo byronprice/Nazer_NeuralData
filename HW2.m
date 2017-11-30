@@ -16,7 +16,12 @@ reduceData = spikeTrains(10001:60000,:);
 
 connectivityMatrix1 = zeros(numNeurons,numNeurons);
 connectivityMatrix2 = zeros(numNeurons,numNeurons);
-histParams = 25;
+histParams = 50;numBases = 10;
+basisFuns = zeros(histParams,numBases);
+for ii=1:numBases
+    basisFuns(:,ii) = exp(-((0:49)-(ii-1)*5).^2./(2*2*2));
+end
+
 allInds = 1:numNeurons;
 parfor ii=1:numNeurons
     Y = reduceData(histParams+1:end,ii);
@@ -25,7 +30,7 @@ parfor ii=1:numNeurons
        H(:,jj) = reduceData(histParams+1-jj:end-jj,ii); 
     end
 
-    Design = [ones(length(Y),1),H,reduceData(histParams+1:end,allInds~=ii)];
+    Design = [ones(length(Y),1),H*basisFuns,reduceData(histParams+1:end,allInds~=ii)];
     [~,fullDev,~] = glmfit(Design,Y,'poisson','constant','off');
     
     tempConn1 = zeros(1,numNeurons);
@@ -34,7 +39,7 @@ parfor ii=1:numNeurons
         tempConn1(jj) = fullDev;
         
         newInds = find(allInds~=ii & allInds~=jj);
-        Design = [ones(length(Y),1),H,reduceData(histParams+1:end,newInds)];
+        Design = [ones(length(Y),1),H*basisFuns,reduceData(histParams+1:end,newInds)];
         [~,dev,~] = glmfit(Design,Y,'poisson','constant','off');
         tempConn2(jj) = dev;
     end
@@ -44,7 +49,7 @@ parfor ii=1:numNeurons
 end
 
 save('SmallNet1_OASISResults.mat','connectivityMatrix1','connectivityMatrix2',...
-    'numNeurons','N','histParams');
+    'numNeurons','N','histParams','numBases');
 
 delete(gcp);
 
@@ -76,8 +81,8 @@ end
 % get p-vals for each connection, then do Benjamini-Hochberg procedure with
 %  p-vals in hand
 PVALmat = zeros(numNeurons,numNeurons);
-fullParams = numNeurons-1+histParams+1;
-restrictParams = numNeurons-2+histParams+1;
+fullParams = numNeurons-1+numBases+1;
+restrictParams = numNeurons-2+numBases+1;
 paramDiff = fullParams-restrictParams;
 allInds = 1:numNeurons;
 
