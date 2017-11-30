@@ -1,33 +1,32 @@
 % HW2.m
 %  HW2 for Nazer's neural data class ... network inference from calcium
 %   imaging data
-% myCluster = parcluster('local');
-% 
-% if getenv('ENVIRONMENT')
-%    myCluster.JobStorageLocation = getenv('TMPDIR'); 
-% end
-% 
-% parpool(myCluster,2);
+myCluster = parcluster('local');
+
+if getenv('ENVIRONMENT')
+   myCluster.JobStorageLocation = getenv('TMPDIR'); 
+end
+
+parpool(myCluster,6);
 
 load('small_net1-spikes.mat');
 
-reduceData = spikeTrains;
+reduceData = spikeTrains(10001:60000,:);
 [N,numNeurons] = size(reduceData);
 
 connectivityMatrix1 = zeros(numNeurons,numNeurons);
 connectivityMatrix2 = zeros(numNeurons,numNeurons);
 histParams = 25;
 allInds = 1:numNeurons;
-for ii=1:numNeurons
+parfor ii=1:numNeurons
     Y = reduceData(histParams+1:end,ii);
     H = zeros(length(Y),histParams);
     for jj=1:histParams
        H(:,jj) = reduceData(histParams+1-jj:end-jj,ii); 
     end
-    tic;
+
     Design = [ones(length(Y),1),H,reduceData(histParams+1:end,allInds~=ii)];
     [~,fullDev,~] = glmfit(Design,Y,'poisson','constant','off');
-    toc;
     
     tempConn1 = zeros(1,numNeurons);
     tempConn2 = zeros(1,numNeurons);
@@ -141,10 +140,10 @@ for ii=1:numTests
     
     % calculate error, etc.
     temp = undirPvec+undirConnVec;
-    accuracy(ii) = (sum(sum(temp==2))+sum(sum(temp==0)))/(numNeurons*numNeurons/2-numNeurons);
+    accuracy(ii) = (sum(temp==2)+sum(temp==0))/(numNeurons*numNeurons/2-numNeurons);
     
     % get true positive rate
-    truePositives(ii) = sum(sum(temp==2))/sum(sum(undirConnVec==1));
+    truePositives(ii) = sum(temp==2)/sum(undirConnVec==1);
     % get false positive rate
     negatives = find(undirConnVec==0);
     guessPositives = find(undirPvec==1);
