@@ -1,13 +1,13 @@
 % HW2.m
 %  HW2 for Nazer's neural data class ... network inference from calcium
 %   imaging data
-myCluster = parcluster('local');
-
-if getenv('ENVIRONMENT')
-   myCluster.JobStorageLocation = getenv('TMPDIR');
-end
-
-parpool(myCluster,6);
+% myCluster = parcluster('local');
+% 
+% if getenv('ENVIRONMENT')
+%    myCluster.JobStorageLocation = getenv('TMPDIR');
+% end
+% 
+% parpool(myCluster,6);
 
 load('small_net1-spikes.mat');
 reduceData = spikeTrains;
@@ -24,7 +24,7 @@ for ii=1:numBases
 end
 
 allInds = 1:numNeurons;
-parfor ii=1:numNeurons
+for ii=1:numNeurons
     Y = reduceData(histParams+1:end,ii);
     H = zeros(length(Y),histParams);
     for jj=1:histParams
@@ -33,18 +33,15 @@ parfor ii=1:numNeurons
     
     forDesign = [reduceData(histParams+1:end,allInds~=ii),reduceData(histParams:end-1,allInds~=ii)];
     Design = [ones(length(Y),1),H*basisFuns,forDesign];
-
-    b = Design\Y;
-    inds = numBases+2:length(b);
-    temp = b(inds);
-    sigma = 1.4826.*mad(temp,1);
-    newInds = abs(temp)<sigma;
-    forDesign(:,newInds) = [];
+    numParams = size(Design,2);
+    inds = numBases+2:numParams;
+    lambdaVec = 5:0.5:15;
+    b0 = Design\Y;
+    [lambda,b,fullDev] = LassoRegression(Design,Y,inds,lambdaVec,N,b0);
     
-    Design = [ones(length(Y),1),H*basisFuns,forDesign];
-    b = Design\Y;
-    fullDev = sum((Design*b-Y).^2);
     params1 = length(b);
+    
+    tempInds = allInds~=ii;
     
     tempConn1 = zeros(1,numNeurons);
     tempConn2 = zeros(1,numNeurons);
@@ -54,22 +51,15 @@ parfor ii=1:numNeurons
         tempConn1(jj) = fullDev;
         tempParams1(jj) = params1;
         
+        newB = b;
+        
         newInds = find(allInds~=ii & allInds~=jj);
         forDesign = [reduceData(histParams+1:end,newInds),reduceData(histParams:end-1,newInds)];
         Design = [ones(length(Y),1),H*basisFuns,forDesign];
       
-        b = Design\Y;
-        inds = numBases+2:length(b);
-        temp = b(inds);
-        sigma = 1.4826.*mad(temp,1);
-        newInds = abs(temp)<sigma;
-        forDesign(:,newInds) = [];
+        [~,~,dev] = LassoRegression(Design,Y,inds,lambda,N,newB);
         
-        Design = [ones(length(Y),1),H*basisFuns,forDesign];
-        b = Design\Y;
-        dev = sum((Design*b-Y).^2);
-        tempParams2(jj) = length(b);
-
+        tempParams2(jj) = params1-1;
         tempConn2(jj) = dev;
     end
     connectivityMatrix1(ii,:) = tempConn1;
@@ -162,7 +152,6 @@ for ii=1:numTests
     % threshold to get directed connectivity
     newPmat = PVALmat;newPmat(newPmat>=pThreshold) = 0;
     newPmat(newPmat>0) = 1;
-    
     
     % convert to undirected connectivity
     undirPmat = newPmat;
