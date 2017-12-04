@@ -4,7 +4,7 @@ function [] = NaturalImageTest()
 cd ~/CloudStation/ByronExp/RestructuredNaturalImages/
 
 load('NaturalImages.mat','allIms');
-load('ResNaturalImages.mat','resIms');
+load('PinkResNaturalImages.mat','resIms');
 load('UniformResNaturalImages.mat','unifResIms');
 
 allIms = double(allIms);resIms = double(resIms);
@@ -17,7 +17,7 @@ N = 500;DIM = [200,200];
 
 allIms = allIms(200:399,300:499,1:N);
 resIms = resIms(200:399,300:499,1:N);
-unifResIms = unifResIms(200:399,300:499,:,1:N);
+unifResIms = unifResIms(200:399,300:499,1:N);
 
 [X,Y] = meshgrid(1:DIM(2),1:DIM(1));
 
@@ -35,14 +35,12 @@ for ii=1:DIM(1)
 end
 maskInds = find(mask);
 
-imrotations = [0,90,180,270];
-
 a = 2;b = 2;c = 1;
 sigmoid = @(x,a,b,c) a./(1+exp(-b.*(x-c)));
 
 imrotations = [0,90,180,270];
 spatialFrequencies = [1/100,1/75,1/50,1/40,1/30,1/20,1/10,1/5];
-minLens = 5.*ones(length(spatialFrequencies),1);
+minLens = 3.*ones(length(spatialFrequencies),1);
 
 resultNames = {'ASD_Nat','ASD_PoissNat','ASD_ResPinkNat','ASD_PoissResPinkNat',...
     'ASD_ResUnifNat','ASD_PoissResUnifNat','ASD_White','ASD_PoissWhite','ASD_Pink','ASD_PoissPink',...
@@ -352,6 +350,7 @@ for jj=1:length(spatialFrequencies)
         mseOrient(jj,kk,2) = std(resultsOrient(:,kk).^2);
         mseFull(jj,kk,2) = std(resultsFull(:,kk).^2);
     end
+    fprintf('Done with iteration %d\n',jj);
 end
 
 save Natural_Res_Ims-Test.mat mseSpatFreq mseOrient mseFull biasSpatFreq biasOrient ...
