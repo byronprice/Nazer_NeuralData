@@ -2,7 +2,7 @@ function [lambda,b,deviance] = LassoRegression(Design,Y,inds,lambdaVec,N,b0)
 % LassoRegression.m
 train = round(N*0.7);
 
-options = optimoptions('fmincon','MaxFunctionEvaluations',1e4);
+options = optimoptions('fmincon','MaxFunctionEvaluations',7500);
 nLambda = length(lambdaVec);
 fullError = zeros(nLambda,1);
 bVals = zeros(length(b0),nLambda);
@@ -12,6 +12,7 @@ for lambda = lambdaVec
     b = fmincon(myFun,b0,[],[],[],[],[],[],[],options);
     fullError(count) = sum((Design(train+1:end,:)*b-Y(train+1:end)).^2);
     bVals(:,count) = b;
+    b0 = b;
     count = count+1;
 end
 
