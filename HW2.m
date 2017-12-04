@@ -31,32 +31,43 @@ for ii=1:numNeurons
        H(:,jj) = reduceData(histParams+1-jj:end-jj,ii); 
     end
     
-    forDesign = [reduceData(histParams+1:end,allInds~=ii),reduceData(histParams:end-1,allInds~=ii)];
+    currentInds = allInds~=ii;
+    forDesign = [reduceData(histParams+1:end,currentInds),reduceData(histParams:end-1,currentInds)];
     Design = [ones(length(Y),1),H*basisFuns,forDesign];
     numParams = size(Design,2);
     inds = numBases+2:numParams;
-    lambdaVec = 5:0.5:15;
+    lambdaVec = 1:0.5:20;
     b0 = Design\Y;
+%     temp = b0(inds);
+%     stdEst = 1.4826*mad(temp,1);
+%     temp(abs(temp)<stdEst) = 0;
+%     b0(inds) = temp;
+%     multiplier = (Design*b0)\Y;
+%     b0 = b0*multiplier;
     [lambda,b,fullDev] = LassoRegression(Design,Y,inds,lambdaVec,N,b0);
     
     params1 = length(b);
-    
-    tempInds = allInds~=ii;
     
     tempConn1 = zeros(1,numNeurons);
     tempConn2 = zeros(1,numNeurons);
     tempParams1 = zeros(1,numNeurons);
     tempParams2 = zeros(1,numNeurons);
-    for jj=1:numNeurons
+    for jj=find(currentInds)
         tempConn1(jj) = fullDev;
         tempParams1(jj) = params1;
         
         newB = b;
+        indForExclusion = find(currentInds);
+        indForExclusion = indForExclusion~=jj;
+        temp = newB(inds);
+        temp = temp(indForExclusion);
+        newB(inds) = temp;
         
-        newInds = find(allInds~=ii & allInds~=jj);
+        newInds = allInds~=ii & allInds~=jj;
         forDesign = [reduceData(histParams+1:end,newInds),reduceData(histParams:end-1,newInds)];
         Design = [ones(length(Y),1),H*basisFuns,forDesign];
-      
+        
+        lambdaVec = [lambda-0.25,lambda,lambda+0.25];
         [~,~,dev] = LassoRegression(Design,Y,inds,lambda,N,newB);
         
         tempParams2(jj) = params1-1;
