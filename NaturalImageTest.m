@@ -13,11 +13,11 @@ allIms = (allIms-mean(allIms(:)))/std(allIms(:));
 resIms = (resIms-mean(resIms(:)))/std(resIms(:));
 unifResIms = (unifResIms-mean(unifResIms(:)))/std(unifResIms(:));
 
-N = 500;DIM = [200,200];
+N = 500;DIM = [100,100];
 
-allIms = allIms(200:399,300:499,1:N);
-resIms = resIms(200:399,300:499,1:N);
-unifResIms = unifResIms(200:399,300:499,1:N);
+allIms = allIms(200:299,300:399,1:N);
+resIms = resIms(200:299,300:399,1:N);
+unifResIms = unifResIms(200:299,300:399,1:N);
 
 [X,Y] = meshgrid(1:DIM(2),1:DIM(1));
 
@@ -40,7 +40,7 @@ sigmoid = @(x,a,b,c) a./(1+exp(-b.*(x-c)));
 
 imrotations = [0,90,180,270];
 spatialFrequencies = [1/100,1/75,1/50,1/40,1/30,1/20,1/10,1/5];
-minLens = 3.*ones(length(spatialFrequencies),1);
+minLens = 1.*ones(length(spatialFrequencies),1);
 
 resultNames = {'ASD_Nat','ASD_PoissNat','ASD_ResPinkNat','ASD_PoissResPinkNat',...
     'ASD_ResUnifNat','ASD_PoissResUnifNat','ASD_White','ASD_PoissWhite','ASD_Pink','ASD_PoissPink',...
