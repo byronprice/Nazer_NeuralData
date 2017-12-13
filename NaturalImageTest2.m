@@ -19,6 +19,30 @@ allIms = allIms(200:299,300:399,1:N);
 resIms = resIms(200:299,300:399,1:N);
 unifResIms = unifResIms(200:299,300:399,1:N);
 
+newIms = zeros(N,413328);
+level = 5;
+for ii=1:N
+    image = allIms(:,:,ii);
+    [C,S] = wavedec2(image,level,'haar'); % 'db4' 
+    newIms(ii,:) = C;
+end
+
+temp = sum(abs(newIms),1);
+thresh = quantile(temp,0.5); % keep 25%
+temp(temp<thresh) = 0;
+
+indices = find(temp);
+
+wdr_Ims = zeros(N,length(indices));
+
+for ii=1:N
+   wdr_Ims(ii,:) = newIms(ii,indices); 
+end
+
+S = cov(wdr_Ims);
+
+[precision,~,~,~,~,~] = QUIC('default', S, 0.5, 1e-6, 2, 100);
+
 
 [X,Y] = meshgrid(1:DIM(2),1:DIM(1));
 
@@ -40,21 +64,21 @@ a = 2;bb = 2;c = 0;
 sigmoid = @(x,a,b,c) a./(1+exp(-b.*(x-c)));
 
 imrotations = [0,90,180,270];
-N = [100,250,500,750];
+N = [750,100,250,500,750];
 
 numConditions = 6;
 numIter = 250;
 rmseFull = zeros(length(N),numConditions,numIter);
 
-myCluster = parcluster('local');
+% myCluster = parcluster('local');
+% 
+% if getenv('ENVIRONMENT')
+%    myCluster.JobStorageLocation = getenv('TMPDIR'); 
+% end
+% 
+% parpool(myCluster,4);
 
-if getenv('ENVIRONMENT')
-   myCluster.JobStorageLocation = getenv('TMPDIR'); 
-end
-
-parpool(myCluster,4);
-
-parfor jj=1:length(N)
+for jj=1:length(N)
     resultsFull = zeros(numConditions,numIter);
     for kk=1:numIter
         spatFreq = rand*(1/30-1/75)+1/75;
