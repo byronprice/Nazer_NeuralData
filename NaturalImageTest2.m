@@ -19,21 +19,23 @@ allIms = allIms(200:299,300:399,1:N);
 resIms = resIms(200:299,300:399,1:N);
 unifResIms = unifResIms(200:299,300:399,1:N);
 
-newIms = zeros(N,413328);
-level = 5;
+newIms = zeros(N,prod(DIM));
+% level = 5;
 for ii=1:N
-    image = allIms(:,:,ii);
-    [C,S] = wavedec2(image,level,'haar'); % 'db4' 
-    newIms(ii,:) = C;
+    image = resIms(:,:,ii);
+%     [C,S] = wavedec2(image,level,'haar'); % 'db4' 
+    Q = dct(image,[],1);
+    R = dct(Q,[],2);
+    newIms(ii,:) = R(:);
 end
 
 temp = sum(abs(newIms),1);
-thresh = quantile(temp,0.5); % keep 25%
+thresh = quantile(temp,0.5); % keep 75%
 temp(temp<thresh) = 0;
 
 indices = find(temp);
-
-wdr_Ims = zeros(N,length(indices));
+wdrLen = length(indices);
+wdr_Ims = zeros(N,wdrLen);
 
 for ii=1:N
    wdr_Ims(ii,:) = newIms(ii,indices); 
@@ -41,7 +43,7 @@ end
 
 S = cov(wdr_Ims);
 
-[precision,~,~,~,~,~] = QUIC('default', S, 0.5, 1e-6, 2, 100);
+[precision,~,~,~,~,~] = QUIC('default', S,10,1e-6, 2, 100);
 
 
 [X,Y] = meshgrid(1:DIM(2),1:DIM(1));
@@ -60,7 +62,7 @@ for ii=1:DIM(1)
 end
 maskInds = find(mask);maskSize = length(maskInds);
 
-a = 2;bb = 2;c = 0;
+a = 3;bb = 2;c = 1;
 sigmoid = @(x,a,b,c) a./(1+exp(-b.*(x-c)));
 
 imrotations = [0,90,180,270];
@@ -102,9 +104,9 @@ for jj=1:length(N)
             temp2 = resIms(:,:,ii);
             temp3 = unifResIms(:,:,ii);
             
-            temp1 = imrotate(temp1,rotate);
-            temp2 = imrotate(temp2,rotate);
-            temp3 = imrotate(temp3,rotate);
+%             temp1 = imrotate(temp1,rotate);
+%             temp2 = imrotate(temp2,rotate);
+%             temp3 = imrotate(temp3,rotate);
             
 %             temp4 = reshape(whiteData(ii,:),DIM);
 %             temp5 = spatialPattern(DIM+100,-2);
@@ -141,11 +143,11 @@ for jj=1:length(N)
 %         poissWhite = filterWhiteOutput./std(filterWhiteOutput);
 %         poissPink = filterPinkOutput./std(filterPinkOutput);
         
-        poissNat = poissrnd(sigmoid(poissNat,a,bb,c).*gamrnd(2,0.5,[N(jj),1]));
+        poissNat = poissrnd(sigmoid(poissNat,a,bb,c).*gamrnd(3,1/3,[N(jj),1]));
         poissNat = poissNat-mean(poissNat);
-        poissResNat = poissrnd(sigmoid(poissResNat,a,bb,c).*gamrnd(2,0.5,[N(jj),1]));
+        poissResNat = poissrnd(sigmoid(poissResNat,a,bb,c).*gamrnd(3,1/3,[N(jj),1]));
         poissResNat = poissResNat-mean(poissResNat);
-        poissUnifResNat = poissrnd(sigmoid(poissUnifResNat,a,bb,c).*gamrnd(2,0.5,[N(jj),1]));
+        poissUnifResNat = poissrnd(sigmoid(poissUnifResNat,a,bb,c).*gamrnd(3,1/3,[N(jj),1]));
         poissUnifResNat = poissUnifResNat-mean(poissUnifResNat);
 %         poissWhite = poissrnd(sigmoid(poissWhite,a,bb,c).*gamrnd(2,0.5,[N(jj),1]));
 %         poissWhite = poissWhite-mean(poissWhite);
