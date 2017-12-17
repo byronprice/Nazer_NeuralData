@@ -4,6 +4,7 @@
 numIter = 500;
 N = [100,200,300,400,500,600,700,800,900,1000];DIM = 1000;
 
+optimalPenalty = zeros(length(N),numIter,3);
 result = struct('ASD',zeros(length(N),numIter,12),'Shrink',zeros(length(N),numIter,12),...
     'Sparse',zeros(length(N),numIter,12));
 
@@ -79,10 +80,13 @@ for ii=1:length(N)
         
         suffStat = pinkShrink*pinkData';
         estShrink = suffStat*filterOutputPink;
+        b = estShrink\myfilter';estShrink = estShrink.*b;
         
         estShrinkNoise = suffStat*filterOutputPinkNoise;
+        b = estShrinkNoise\myfilter';estShrinkNoise = estShrinkNoise.*b;
         
         estShrinkSig = suffStat*filterOutputPinkSigmoid;
+        b = estShrinkSig\myfilter';estShrinkSig = estShrinkSig.*b;
         
         result.Shrink(ii,jj,7) = (1/sqrt(DIM))*norm(estShrink-myfilter');
         result.Shrink(ii,jj,8) = (1/sqrt(indLen))*norm(estShrink(importInds)-myfilter(importInds)');
@@ -98,30 +102,39 @@ for ii=1:length(N)
 %         figure;plot(estSparseNoise);hold on;plot(myfilter);
 %         figure;plot(estSparseSig);hold on;plot(myfilter);
         
-        [XP,~,~,~,~,~] = QUIC('path', Spink,50,[2,1.5,1,0.75,0.5,0.2,0.1,1/25], 1e-6, 2, 100);
-        cv_result = zeros(8,3);
+        [XP,~,~,~,~,~] = QUIC('path', Spink,50,[2,1.5,1,0.75,0.5,0.2,0.1,1/25,1/50], 1e-6, 2, 100);
+        
+        temp = pinv(pinkData'*pinkData);
+        
+        newXP = zeros(DIM,DIM,10);
+        newXP(:,:,1:9) = XP;newXP(:,:,end) = temp;
+        
+        cv_result = zeros(10,3);
         allInds = 1:N(ii);cv_len = N(ii)-round(N(ii)/10);
-        for zz=1:8
-            X = XP(:,:,zz);
-            for yy=1:50
+        for zz=1:10
+            X = newXP(:,:,zz);
+            for yy=1:100
                 inds = randperm(N(ii),cv_len);
                 inds = ismember(allInds,inds);
                 holdOutInds = ~inds;
-                suffStat = (1./(cv_len-1)).*X*pinkData(inds,:)';
+                suffStat = X*pinkData(inds,:)';
                 
                 tempestSparse = suffStat*filterOutputPink(inds);
+                b = tempestSparse\myfilter';tempestSparse = tempestSparse.*b;
                 
                 r = corrcoef(pinkData(holdOutInds,:)*tempestSparse,filterOutputPink(holdOutInds));
                 
                 cv_result(zz,1) = cv_result(zz,1)+r(1,2);
                 
                 tempestSparseNoise = suffStat*filterOutputPinkNoise(inds);
+                b = tempestSparseNoise\myfilter';tempestSparseNoise = tempestSparseNoise.*b;
                 
                 r = corrcoef(pinkData(holdOutInds,:)*tempestSparseNoise,filterOutputPinkNoise(holdOutInds));
                 
                 cv_result(zz,2) = cv_result(zz,2)+r(1,2);
                 
                 tempestSparseSig = suffStat*filterOutputPinkSigmoid(inds);
+                b = tempestSparseSig\myfilter';tempestSparseSig = tempestSparseSig.*b;
                 
                 r = corrcoef(max(pinkData(holdOutInds,:)*tempestSparseSig+meanPinkSigmoid,0),filterOutputPinkSigmoid(holdOutInds));
                 
@@ -130,19 +143,25 @@ for ii=1:length(N)
         end
         
         [~,ind] = max(cv_result(:,1));
-        X = XP(:,:,ind);
-        suffStat = (1./(N(ii)-1)).*X*pinkData';
+        optimalPenalty(ii,jj,1) = ind;
+        X = newXP(:,:,ind);
+        suffStat = X*pinkData';
         estSparse = suffStat*filterOutputPink;
+        b = estSparse\myfilter';estSparse = estSparse.*b;
         
         [~,ind] = max(cv_result(:,2));
-        X = XP(:,:,ind);
-        suffStat = (1./(N(ii)-1)).*X*pinkData';
+        optimalPenalty(ii,jj,2) = ind;
+        X = newXP(:,:,ind);
+        suffStat = X*pinkData';
         estSparseNoise = suffStat*filterOutputPinkNoise;
+        b = estSparseNoise\myfilter';estSparseNoise = estSparseNoise.*b;
         
         [~,ind] = max(cv_result(:,3));
-        X = XP(:,:,ind);
-        suffStat = (1./(N(ii)-1)).*X*pinkData';
+        optimalPenalty(ii,jj,3) = ind;
+        X = newXP(:,:,ind);
+        suffStat = X*pinkData';
         estSparseSig = suffStat*filterOutputPinkSigmoid;
+        b = estSparseSig\myfilter';estSparseSig = estSparseSig.*b;
         
         result.Sparse(ii,jj,7) = (1/sqrt(DIM))*norm(estSparse-myfilter');
         result.Sparse(ii,jj,8) = (1/sqrt(indLen))*norm(estSparse(importInds)-myfilter(importInds)');
@@ -160,7 +179,7 @@ for ii=1:length(N)
     fprintf('\n\n\nDone with iter: %d\n\n\n',ii);
 end
 
-save('AlgorithmTests.mat','N','DIM','numIter','result');
+save('AlgorithmTests.mat','N','DIM','numIter','result','optimalPenalty');
 
 for zz=[8,10,12]
     noNoise = zeros(3,10,3);
