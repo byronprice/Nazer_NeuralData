@@ -163,18 +163,18 @@ end
 save('AlgorithmTests.mat','N','DIM','numIter','result');
 
 for zz=[8,10,12]
-    noNoise = zeros(3,11,3);
-    gaussNoise = zeros(3,11,3);
-    sigmoidNoise = zeros(3,11,3);
+    noNoise = zeros(3,10,3);
+    gaussNoise = zeros(3,10,3);
+    sigmoidNoise = zeros(3,10,3);
     
     
-    for ii=1:11
+    for ii=1:10
         vals = squeeze(result.ASD(ii,:,zz));
         vals2 = squeeze(result.Shrink(ii,:,zz));
         vals3 = squeeze(result.Sparse(ii,:,zz));
-        temp1 = zeros(1000,1);temp2 = zeros(1000,1);temp3 = zeros(1000,1);
-        for jj=1:1000
-            inds = random('Discrete Uniform',1000,[1000,1]);
+        temp1 = zeros(numIter,1);temp2 = zeros(numIter,1);temp3 = zeros(numIter,1);
+        for jj=1:numIter
+            inds = random('Discrete Uniform',numIter,[numIter,1]);
             temp1(jj) = mean(vals(inds));
             temp2(jj) = mean(vals2(inds));
             temp3(jj) = mean(vals3(inds));
