@@ -58,7 +58,7 @@ lPath = [10,5,4,3,2,1.5,1,0.75,0.5,0.25,0.1,0.05,0.02,0.01,0.001];
 
 newXP = zeros(q,q,length(lPath)+1);
 newXP(:,:,1:length(lPath)) = XP;
-newXP(:,:,end) = pinv(reduceDctData'*reduceDctData);
+newXP(:,:,end) = (N-1).*pinv(reduceDctData'*reduceDctData);
 XP = newXP;clear newXP;
 
 result = struct('ASD',zeros(numIter,2),...
